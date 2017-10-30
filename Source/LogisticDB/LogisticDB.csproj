@@ -37,6 +37,9 @@
     <BaseIntermediateOutputPath>..\..\Obj</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>truck.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Dapper">
       <HintPath>..\..\Foreign\Dapper\Dapper.dll</HintPath>
@@ -72,6 +75,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Converters.cs" />
     <Compile Include="ReportsWindow.xaml.cs">
       <DependentUpon>ReportsWindow.xaml</DependentUpon>
     </Compile>
@@ -142,6 +146,7 @@
     <Content Include="createdb.sql">
       <Link>createdb.sql</Link>
     </Content>
+    <Resource Include="truck.ico" />
     <None Include="createdb.pls" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

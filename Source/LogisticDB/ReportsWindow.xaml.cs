@@ -20,7 +20,7 @@ namespace LogisticDB
     {
         LogisticData db;
 
-        public ReportsWindow()
+        ReportsWindow()
         {
             InitializeComponent();
         }
@@ -32,5 +32,37 @@ namespace LogisticDB
             win.ShowDialog();
         }
 
+        private bool CheckInputDates()
+        {
+            if (FromCalendar.SelectedDate == null)
+            {
+                MessageBox.Show("Select from date!", "", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            if (ToCalendar.SelectedDate == null)
+            {
+                MessageBox.Show("Select to date!", "", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            if(FromCalendar.SelectedDate >= ToCalendar.SelectedDate)
+            {
+                MessageBox.Show("From date must be lesser then to date!", "", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            return true;
+        }
+
+        private void StayCoefButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!CheckInputDates())
+                return;
+            
+            ReportDataGrid.ItemsSource = db.GetStayCoefReport(FromCalendar.SelectedDate.Value, ToCalendar.SelectedDate.Value);
+        }
+
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
     }
 }

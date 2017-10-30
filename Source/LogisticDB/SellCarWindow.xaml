@@ -6,6 +6,11 @@
         xmlns:local="clr-namespace:LogisticDB"
         mc:Ignorable="d"
         Title="SellCarWindow" Height="300" Width="600">
+    <Window.Resources>
+        <ResourceDictionary>
+            <local:NotNullConverter x:Key="NotNullConverter"/>
+        </ResourceDictionary>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -42,7 +47,8 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <Button Name="OkButton" Click="OkButton_Click" Grid.Row="0" Grid.Column="0" Content="OK" Width="100" Height="30" Margin="8"/>
+            <Button Name="OkButton" Click="OkButton_Click" Grid.Row="0" Grid.Column="0" Content="Sell car" Width="100" Height="30" Margin="8"
+                    IsEnabled="{Binding ElementName=CarsListView, Path=SelectedItem, Converter={StaticResource NotNullConverter}}"/>
             <Button Name="CancelButton" Click="CancelButton_Click" Grid.Row="0" Grid.Column="1" Content="Cancel" Width="100" Height="30" Margin="8"/>
         </Grid>
     </Grid>

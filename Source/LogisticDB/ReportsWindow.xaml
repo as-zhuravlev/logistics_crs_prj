@@ -5,22 +5,49 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LogisticDB"
         mc:Ignorable="d"
-        Title="ReportsWindow" Height="300" Width="300">
-    <Grid Grid.Row="4">
+        Title="Reports" Height="600" Width="800">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-  
-        </Grid.ColumnDefinitions>
-        <Button Name="BuyCarButton" Click="BuyCarButton_Click" Grid.Row="0" Grid.Column="0"  Background='White' Margin='8' Width="100" Height="35" Content="Buy car"/>
-        <Button Name="SellCarButton" Click="SellCarButton_Click" Grid.Row="0" Grid.Column="1"  Background='White' Margin='8' Width="100" Height="35" Content="Sell car"/>
-        <Button Name="MakeOrderButton" Click="MakeOrderButton_Click" Grid.Row="1" Grid.Column="0"  Background='White' Margin='8' Width="100" Height="35" Content="Make order"/>
-        <Button Name="ReportsButton" Click="ReportsButton_Click" Grid.Row="1" Grid.Column="1"  Background='White' Margin='8' Width="100" Height="35" Content="Reports"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="From:" Margin="4"/>
+                <Calendar Name="FromCalendar" Grid.Row="0" Grid.Column="1" />
+                <TextBlock Grid.Row="1" Grid.Column="0"  Text="To:" Margin="4"/>
+                <Calendar Name="ToCalendar" Grid.Row="1" Grid.Column="1" />
+            </Grid>
+            <GroupBox Grid.Column="1" Margin="4" Header="Report Data:">
+                <DataGrid Name="ReportDataGrid"/>
+            </GroupBox>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button Name="StayCoefButton" Click="StayCoefButton_Click" Grid.Column="0" Content="Stay coef&#x0a;  Report" Margin="6" Height="40" Width="80"/>
+            <Button Grid.Column="1" Content="Report 2" Margin="6" Height="30" Width="80"/>
+            <Button Grid.Column="2" Content="Report 2" Margin="6" Height="30" Width="80"/>
+            <Button Grid.Column="3" Content="Report 3" Margin="6" Height="30" Width="80"/>
+            <Button Name="CloseButton" Click="CloseButton_Click"  Grid.Column="5" Content="Close" Margin="6" Height="30" Width="80"/>
+        </Grid>
     </Grid>
 </Window>

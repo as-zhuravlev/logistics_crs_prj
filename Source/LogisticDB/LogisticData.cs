@@ -71,7 +71,12 @@ namespace LogisticDB
     {
         public string cargotype_name { get; set; }
     }
-    
+  
+    public class CarViewExpense : CarView
+    {
+        public double expense { get; set; }
+    }
+
     public class Transaction
     {
         public int id { get; set; }
@@ -80,12 +85,28 @@ namespace LogisticDB
         public int city_from { get; set; }
         public int city_to { get; set; }
         public DateTime date_from { get; set; }
-        public DateTime? date_to { get; set; }
+        public DateTime date_to { get; set; }
     }
 
-    public class CarViewExpense : CarView
+    public class TransactionView : Transaction
     {
-        public double expense { get; set; }
+       public string city_from_name { get; set; }
+       public string city_to_name { get; set; }
+       public double expense { get; set; }
+       public double reward { get; set; }
+       public int    distance { get; set; }
+       public bool isUnprofitable  { get { return reward > 0 && expense >= reward; } }
+       public bool isProfitable { get { return reward > 0 && expense < reward; } }
+
+    }
+
+    public class CarStayCoef
+    {
+        public string registration_number { get; set; }
+        public string carmodel_name { get; set; }
+        public string cargotype_name { get; set; }
+        public float payload { get; set; }
+        public float stay_coef { get; set; }
     }
 
     public class LogisticData
@@ -147,13 +168,13 @@ namespace LogisticDB
         {
             using (NpgsqlConnection conn = new NpgsqlConnection(ConnectStr))
             {
-                var res = conn.Query<CarViewExpense>(@"SELECT * FROM cars_view AS cv INNER JOIN find_cars_for_transaction(@cargotype_id, @weight, @city_id_from , @city_id_to, ((@date)::date)) as f ON f.car_id = cv.id",
+                return conn.Query<CarViewExpense>(@"SELECT * FROM cars_view AS cv INNER JOIN find_cars_for_transaction(@cargotype_id, @weight, @city_id_from , @city_id_to, ((@date)::date)) as f ON f.car_id = cv.id",
                     new { cargotype_id = cargoType.id, weight = weight, city_id_from = city_from.id, city_id_to = city_to.id, date = date }).ToList();
-                return res;
+              
             }
         }
 
-        public void MakeTransaction(CarViewExpense car, City city_from, City city_to, DateTime date, float weight)
+        public void MakeOrder(CarViewExpense car, City city_from, City city_to, DateTime date, float weight)
         {
             using (NpgsqlConnection conn = new NpgsqlConnection(ConnectStr))
             {
@@ -162,5 +183,21 @@ namespace LogisticDB
             }
         }
 
+        public IEnumerable<TransactionView> GetCarTransactions(Car car)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(ConnectStr))
+            {
+                return conn.Query<TransactionView>(@"SELECT * FROM  transactions_view WHERE car_id = @id", car);
+            }
+        }
+
+        public IEnumerable<CarStayCoef> GetStayCoefReport(DateTime from, DateTime to)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(ConnectStr))
+            {
+                return conn.Query<CarStayCoef>(@"SELECT * FROM stay_coef_report(@from::date, @to::date) AS r INNER JOIN cars_view AS cv ON cv.id = r.car_id",
+                    new { from = from, to = to });
+            }
+        }
     }
 }

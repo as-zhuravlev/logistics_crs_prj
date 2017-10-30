@@ -30,13 +30,26 @@ namespace LogisticDB
         
         private void BuyCarButton_Click(object sender, RoutedEventArgs e)
         {
-            BuyCarWindow.ShowBuyDialog(db);
-            CarsListView.ItemsSource = db.GetCarViews();
+
+            if (BuyCarWindow.ShowBuyDialog(db))
+            {
+                var cars = db.GetCarViews().ToList();
+                CarsListView.ItemsSource = cars;
+                CarsListView.SelectedItem = cars.Aggregate((a, b) => (a.id > b.id ? a : b));
+            }
         }
 
         private void MakeOrderButton_Click(object sender, RoutedEventArgs e)
         {
-            MakeOrderWindow.ShowMakeOrderDialog(db);
+            int car_id = -1;
+            if (MakeOrderWindow.ShowMakeOrderDialog(db, out car_id))
+            {
+                var cars = CarsListView.ItemsSource as IEnumerable<CarView>;
+                if (cars == null)
+                    return;
+                CarsListView.SelectedItem = null;
+                CarsListView.SelectedItem = cars.FirstOrDefault(x => x.id == car_id);
+            }
         }
 
         private void SellCarButton_Click(object sender, RoutedEventArgs e)
@@ -48,7 +61,16 @@ namespace LogisticDB
 
         private void ReportsButton_Click(object sender, RoutedEventArgs e)
         {
-            ReportsWindow.
+            ReportsWindow.ShowReportsDialog(db);
+        }
+
+        private void CarTransactionsListView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            var car = CarsListView.SelectedItem as Car;
+            if (car == null)
+                return;
+            var tr = db.GetCarTransactions(car).ToList();
+            CarTransactionsListView.ItemsSource = tr;
         }
     }
 }

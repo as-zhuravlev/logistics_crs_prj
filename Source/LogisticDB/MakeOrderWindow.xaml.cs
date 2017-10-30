@@ -19,13 +19,15 @@ namespace LogisticDB
     public partial class MakeOrderWindow : Window
     {
         LogisticData db;
+        int car_id;
 
-        public MakeOrderWindow()
+        MakeOrderWindow()
         {
             InitializeComponent();
+            car_id = -1;
         }
 
-        public static void ShowMakeOrderDialog(LogisticData db)
+        public static bool ShowMakeOrderDialog(LogisticData db, out int car_id)
         {
             var win = new MakeOrderWindow();
             win.db = db;
@@ -33,9 +35,11 @@ namespace LogisticDB
             win.CitiesToComboBox.ItemsSource = db.GetCities();
             win.CarTypeComboBox.ItemsSource = db.GetCargoTypes();
             win.ShowDialog();
+            car_id = win.car_id;
+            return win.DialogResult ?? false;
         }
 
-        private void OkButton_Click(object sender, RoutedEventArgs e)
+        private void FindCarsButton_Click(object sender, RoutedEventArgs e)
         {
             float weight = 0;
             if (CitiesFromComboBox.SelectedItem == null)
@@ -77,7 +81,7 @@ namespace LogisticDB
                 weight);
         }
 
-        private void Ok2Button_Click(object sender, RoutedEventArgs e)
+        private void MakeOrderButton_Click(object sender, RoutedEventArgs e)
         {
             float weight = 0;
             float.TryParse(PayloadTextBox.Text, out weight);
@@ -87,18 +91,20 @@ namespace LogisticDB
                 return;
             }
 
-            db.MakeTransaction(CarsListView.SelectedItem as CarViewExpense, 
+            db.MakeOrder(CarsListView.SelectedItem as CarViewExpense, 
                 CitiesFromComboBox.SelectedItem as City,
                 CitiesToComboBox.SelectedItem as City,
                 (DateTime)DateCalender.SelectedDate,
                 weight);
 
-            Close();
+            car_id = (CarsListView.SelectedItem as CarViewExpense).id;
+            DialogResult = true;
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
-        {
+        { 
             Close();
         }
+
     }
 }

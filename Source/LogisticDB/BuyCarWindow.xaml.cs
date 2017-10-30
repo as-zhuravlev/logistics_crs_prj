@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Npgsql;
 
 namespace LogisticDB
 {
@@ -24,13 +25,14 @@ namespace LogisticDB
             InitializeComponent();
         }
 
-        public static void ShowBuyDialog(LogisticData db)
+        public static bool ShowBuyDialog(LogisticData db)
         {
             var win = new BuyCarWindow();
             win.db = db;
             win.CitiesComboBox.ItemsSource = db.GetCities();
             win.ModelsListView.ItemsSource = db.GetCarModelCargoTypes();
             win.ShowDialog();
+            return win.DialogResult ?? false;
         }
 
         private void OkButton_Click(object sender, RoutedEventArgs e)
@@ -56,10 +58,19 @@ namespace LogisticDB
                 return;
             }
 
-            db.BuyCar((CitiesComboBox.SelectedItem as City).id, 
-                    (ModelsListView.SelectedItem as CarModelCargoType).id, 
-                    (DateTime)DateCalender.SelectedDate, NumberTextBox.Text);
-            Close();
+            try
+            {
+                db.BuyCar((CitiesComboBox.SelectedItem as City).id,
+                        (ModelsListView.SelectedItem as CarModelCargoType).id,
+                        (DateTime)DateCalender.SelectedDate, NumberTextBox.Text);
+            }
+            catch (NpgsqlException ex)
+            {
+                MessageBox.Show(String.Format("{0}\r\nHint: {1}", ex.Message, ex.Hint), "", 
+                                MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            DialogResult = true;
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)

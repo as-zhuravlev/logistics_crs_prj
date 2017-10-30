@@ -179,21 +179,39 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION max_date(IN _d1 date,  IN _d2 date)
+RETURNS date
+AS $$
+BEGIN
 
----------------------------------- VIEWS ----------------------------------------------------------------
+    IF (_d1 IS NULL OR _d2 IS NULL)
+    THEN
+        RETURN COALESCE(_d1, _d2);
+    END IF;
+    IF _d1 > _d2 
+    THEN 
+        RETURN _d1;
+    END IF;
+    RETURN _d2;
+END
+$$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE VIEW cars_view AS
-SELECT c.id, c.registration_number, m.id as carmodel_id, m.name as carmodel_name, 
-       t.name as cargotype_name, t.id as cargotype_id, m.payload, m.price_buy, m.price_sell,
-       m.price_empty_per_km, m.price_full_per_km, m.price_stand_per_day,
-       t1.date_from as date_buy, t2.date_from as date_sell  
-       FROM cars AS c 
-       INNER JOIN carmodels AS m ON c.carmodel_id = m.id
-       INNER JOIN cargotypes AS t ON t.id = m.cargotype_id
-       INNER JOIN transactions AS t1 ON c.id = t1.car_id AND t1.city_from = get_store_id()
-       LEFT JOIN transactions AS t2 ON c.id = t2.car_id AND t2.city_to = get_store_id();
+CREATE OR REPLACE FUNCTION min_date(IN _d1 date,  IN _d2 date)
+RETURNS date
+AS $$
+BEGIN
+    IF (_d1 IS NULL OR _d2 IS NULL)
+    THEN
+        RETURN COALESCE(_d1, _d2);
+    END IF;
+    IF _d1 < _d2 
+    THEN 
+        RETURN _d1;
+    END IF;
+    RETURN _d2;
+END
+$$ LANGUAGE plpgsql;
 
----------------------------------- FUNCTIONS -------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION get_distance(IN _city_from integer, IN _city_to integer) 
 RETURNS integer
@@ -220,6 +238,41 @@ BEGIN
     RETURN (ceil(get_distance(_city_from, _city_to) / (24 * speed())) :: integer);
 END;
 $$ LANGUAGE plpgsql;
+
+---------------------------------- VIEWS ----------------------------------------------------------------
+
+CREATE OR REPLACE VIEW cars_view AS
+SELECT c.id, c.registration_number, m.id as carmodel_id, m.name as carmodel_name, 
+       t.name as cargotype_name, t.id as cargotype_id, m.payload, m.price_buy, m.price_sell,
+       m.price_empty_per_km, m.price_full_per_km, m.price_stand_per_day,
+       t1.date_from as date_buy, t2.date_from as date_sell  
+       FROM cars AS c 
+       INNER JOIN carmodels AS m ON c.carmodel_id = m.id
+       INNER JOIN cargotypes AS t ON t.id = m.cargotype_id
+       INNER JOIN transactions AS t1 ON c.id = t1.car_id AND t1.city_from = get_store_id()
+       LEFT JOIN transactions AS t2 ON c.id = t2.car_id AND t2.city_to = get_store_id();
+
+
+CREATE OR REPLACE VIEW transactions_view AS
+SELECT t.id, t.car_id, 
+       t.city_from, cf.name AS city_from_name,
+       t.city_to, ct.name AS city_to_name,
+       t.distance, t.date_from, t.date_to, 
+       CASE
+           WHEN weight > 0 THEN cv.price_full_per_km * distance
+           ELSE cv.price_empty_per_km * distance
+       END  AS expense,
+       t.distance * weight * crg.price_per_km_ton AS reward
+       FROM (SELECT *, get_distance(city_from,city_to) AS distance FROM transactions) AS t 
+       INNER JOIN cars_view AS cv ON t.car_id = cv.id  
+       INNER JOIN cargotypes AS crg ON cv.cargotype_id = crg.id
+       INNER JOIN cities AS cf ON t.city_from = cf.id
+       INNER JOIN cities AS ct ON t.city_to = ct.id
+       WHERE t.city_from != get_store_id() AND t.city_to != get_store_id()
+       ORDER BY t.date_from;
+	
+
+---------------------------------- FUNCTIONS -------------------------------------------------------------
 
 DO $$
 BEGIN
@@ -344,21 +397,37 @@ $$ LANGUAGE plpgsql;
 
 ------------------------------ REPORTS ---------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION coef_stay_for_each_car() 
+CREATE OR REPLACE FUNCTION car_stay_coef(IN _car_id integer, IN _date_from date,  IN _date_to date) 
 RETURNS real
 AS $$
+DECLARE 
+    in_way integer;
+    cv record;
 BEGIN
-	DROP TABLE IF EXISTS tmp;
-	CREATE TEMP TABLE tmp AS
-		SELECT car_id, date_to - date_from as days
-		FROM transactions
-		WHERE date_part('year', date_from) = date_part('year', CURRENT_DATE);
+   SELECT date_buy, date_sell INTO cv FROM cars_view WHERE id = _car_id; 
+   SELECT SUM(min_date(date_to, _date_to) - max_date(date_from, _date_from)) INTO in_way FROM
+   transactions WHERE car_id = _car_id AND date_from < _date_to AND date_to >= _date_from;
+   RETURN (1::real) - (in_way:: real) / (min_date(_date_to, cv.date_sell) - max_date(_date_from, cv.date_buy));
+END;
+$$ LANGUAGE plpgsql;
 
-    DROP TABLE IF EXISTS in_way;
-	CREATE TEMP TABLE in_way AS
-		SELECT car_id, sum(days) as days_in_way FROM tmp
-		GROUP BY car_id;
+CREATE OR REPLACE FUNCTION stay_coef_report( IN _date_from date,  IN _date_to date) 
+RETURNS TABLE (car_id integer, stay_coef real) 
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT id AS car_id, car_stay_coef(id, _date_from, _date_to) FROM cars;
+END
+$$ LANGUAGE plpgsql;
 
+
+/*
+CREATE OR REPLACE FUNCTION car_stay_coef(IN _car_id integer, IN _date_from date,  IN _date_to date) 
+RETURNS double precision
+AS $$
+DECLARE
+BEGIN
+   RETURN 
    SELECT car_id, 1 - days_in_way / 365.0 as coef FROM in_way ORDER BY car_id;
 END;
 $$ LANGUAGE plpgsql;
@@ -401,7 +470,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
+*/
 CREATE OR REPLACE FUNCTION coef_useless_run_for_each_car() 
 RETURNS VOID
 AS $$
