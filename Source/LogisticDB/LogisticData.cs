@@ -97,7 +97,6 @@ namespace LogisticDB
         public int distance { get; set; }
         public bool isUnprofitable { get { return reward > 0 && expense >= reward; } }
         public bool isProfitable { get { return reward > 0 && expense < reward; } }
-
     }
 
     public class CarCoef
@@ -105,7 +104,7 @@ namespace LogisticDB
         public string registration_number { get; set; }
         public string carmodel_name { get; set; }
         public string cargotype_name { get; set; }
-        public float payload { get; set; }
+        public float? payload { get; set; }
         public float coef { get; set; }
     }
 
@@ -238,28 +237,21 @@ namespace LogisticDB
         {
             using (NpgsqlConnection conn = new NpgsqlConnection(ConnectStr))
             {
-                return conn.Query<CarCoef>(@"SELECT * FROM stay_coef_report(@from::date, @to::date) AS r INNER JOIN cars_view AS cv ON cv.id = r.car_id",
-                      new { from = from, to = to });
+                return conn.Query<CarCoef>(@"SELECT * FROM stay_coef_report(@from::date, @to::date) ",
+                                           new { from = from, to = to });
             }
         }
 
-        public IEnumerable<CarCoef> GetUselessRunCoefReport()
+        public IEnumerable<CarCoef> GetUselessRunCoefReport(DateTime from, DateTime to)
         {
             using (NpgsqlConnection conn = new NpgsqlConnection(ConnectStr))
             {
-                return conn.Query<CarCoef>(@"SELECT * FROM coef_useless_run_for_each_car() AS r INNER JOIN cars_view AS cv ON cv.id = r.car_id");
+                return conn.Query<CarCoef>(@"SELECT * FROM useless_run_report(@from::date, @to::date)",
+                                           new { from = from, to = to });
             }
         }
 
-        public float GetStayCoefForAllReport(DateTime from, DateTime to)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(ConnectStr))
-            { 
-                return conn.ExecuteScalar<float>(@"SELECT * FROM stay_coef_for_all_report(@from::date, @to::date)",
-                    new { from = from, to = to });
-            }
-        }
-
+        /*
         public IEnumerable<CarCoef> GetUselessRunCoefForAllReport()
         {
             using (NpgsqlConnection conn = new NpgsqlConnection(ConnectStr))
@@ -267,7 +259,7 @@ namespace LogisticDB
                 return conn.Query<CarCoef>(@"SELECT * FROM coef_useless_run_for_all()");
             }
         }
-
+        */
         public IEnumerable<PopularCargoes> GetPopularCargoesReport()
         {
             using (NpgsqlConnection conn = new NpgsqlConnection(ConnectStr))

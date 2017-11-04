@@ -462,23 +462,84 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION stay_coef_report( IN _date_from date,  IN _date_to date) 
-RETURNS TABLE (car_id integer, coef real) 
+RETURNS TABLE (registration_number text,
+               carmodel_name text,
+               cargotype_name text,
+               payload real,
+               coef real)
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT id AS car_id, car_stay_coef(id, _date_from, _date_to) as coef FROM cars;
+    WITH rep AS
+    (
+        SELECT cv.registration_number, cv.carmodel_name, cv.cargotype_name, cv.payload,
+               car_stay_coef(id, _date_from, _date_to) AS coef
+        FROM cars_view AS cv
+    )
+    (SELECT * FROM rep) UNION ALL
+    (SELECT 'Total' AS registration_number, null AS carmodel_name,
+                        null AS cargotype_name, null AS payload, AVG(r.coef)::real AS coef FROM rep AS r);
 END
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION stay_coef_for_all_report( IN _date_from date,  IN _date_to date) 
-RETURNS real 
+
+CREATE OR REPLACE FUNCTION car_useless_run_coef(IN _car_id integer, IN _date_from date,  IN _date_to date) 
+RETURNS real
 AS $$
+DECLARE 
+     useless_run integer;
+     usefull_run integer;
+     cv record;
 BEGIN
-	RETURN AVG(coef) as coef FROM stay_coef_report(_date_from, _date_to);
+    SELECT date_buy, date_sell INTO cv FROM cars_view WHERE id = _car_id; 
+    SELECT SUM(get_distance(city_from, city_to)) INTO useless_run FROM transactions
+    WHERE car_id = _car_id AND date_from < _date_to AND date_to >= _date_from AND weight = 0;
+ 
+    SELECT SUM(get_distance(city_from, city_to)) INTO usefull_run FROM transactions
+    WHERE car_id = _car_id AND date_from < _date_to AND date_to >= _date_from AND weight > 0;
+    RAISE NOTICE 'useless_run % usefull_run %', useless_run, usefull_run;
+    IF (useless_run = 0 AND usefull_run = 0) THEN
+        RETURN 0::real;
+    END IF;
+    RETURN (useless_run::real) / (useless_run + usefull_run);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION useless_run_report( IN _date_from date,  IN _date_to date) 
+RETURNS TABLE (registration_number text,
+               carmodel_name text,
+               cargotype_name text,
+               payload real,
+               coef real)
+AS $$
+DECLARE 
+     useless_run integer;
+     usefull_run integer;
+     total_coef real;
+BEGIN
+    SELECT SUM(get_distance(city_from, city_to)) INTO useless_run FROM transactions
+    WHERE date_from < _date_to AND date_to >= _date_from AND weight = 0;
+
+    SELECT SUM(get_distance(city_from, city_to)) INTO usefull_run FROM transactions
+    WHERE  date_from < _date_to AND date_to >= _date_from AND weight > 0;
+    IF (useless_run = 0 AND usefull_run = 0) THEN
+        total_coef := 0::real;
+    ELSE
+        total_coef := (useless_run::real) / (useless_run + usefull_run);
+    END IF; 
+
+    RETURN QUERY
+    (
+        SELECT cv.registration_number, cv.carmodel_name, cv.cargotype_name, cv.payload,
+               car_useless_run_coef(id, _date_from, _date_to) AS coef
+        FROM cars_view AS cv
+    ) UNION ALL
+    (SELECT 'Total' AS registration_number, null AS carmodel_name,
+                        null AS cargotype_name, null AS payload, total_coef AS coef);
 END
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION coef_useless_run_for_each_car() 
+CREATE OR REPLACE FUNCTION coef_useless_run_for_each() 
 RETURNS TABLE (car_id integer, coef real)
 AS $$
 BEGIN	
